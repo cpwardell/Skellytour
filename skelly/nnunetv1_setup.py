@@ -33,8 +33,9 @@ def nnunetv1_setup(nnunetdir="~"):
     os.environ['nnUNet_preprocessed'] = nnunetdir
     os.environ['RESULTS_FOLDER'] = os.path.join(nnunetdir,"results")
 
-    ## Create the results folder
-    os.makedirs(os.environ['RESULTS_FOLDER'], exist_ok=True)
+    ## Create the results folder and some subdirectories
+    os.makedirs(os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres"), exist_ok=True)
+    
     return(nnunetdir)
 
 
@@ -50,19 +51,18 @@ def nnunetv1_weights(model,nnunetdir):
 
     ## Set location to look for model files
     if model=="medium":
-        taskname="Task666" ## should be 815
-        taskno="666" ## should be 815
-        trainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
+        taskname="Task815" ## should be 815
+        taskno="815" ## should be 815
+        fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
         modelfolds=range(5)
-        #modelurl="https://github.com/cpwardell/Skelly/releases/download/untagged-e81e4403ed82722a11f5/Task815.zip"
-        modelurl="https://github.com/cpwardell/Skelly/releases/download/untagged-e81e4403ed82722a11f5/Task666.zip"
+        modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task815.zip"
+        #modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task666.zip"
 
     ## Check files exist; if not, fetch them
-    #.skelly/nnunet/results/nnUNet/3d_fullres/Task815_75/nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1
     models_and_pkls=[]
     for i in modelfolds:
         thisfold="fold_"+str(i)
-        foldpath=os.path.join(nnunetdir,"nnunet/results/nnUNet/3d_fullres",taskname,trainername,thisfold)
+        foldpath=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername,thisfold)
         thismodel=os.path.join(foldpath,"model_final_checkpoint.model")
         thispkl=thismodel+".pkl"
         models_and_pkls.append(os.path.isfile(thismodel))
@@ -70,17 +70,20 @@ def nnunetv1_weights(model,nnunetdir):
 
     if not all(models_and_pkls):
         ## Download file
-        localzip=os.path.join(os.environ['RESULTS_FOLDER'],"temp.zip")
+        localzip=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres/temp.zip")
         logging.info(model+" model not found locally, downloading zip file to "+localzip)
         r = requests.get(modelurl)
         with open(localzip, "wb") as f:
             f.write(r.content)
-        sys.exit()
         ## Unzip file
         logging.info("Download complete, unzipping file")
         with zipfile.ZipFile(localzip, 'r') as zip_ref:
-            zip_ref.extractall(os.environ['RESULTS_FOLDER'])
-        logging.info("Unzipping complete")
+            zip_ref.extractall(os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres"))
+        logging.info("Unzipping complete, removing temporary zip file")
+        os.remove(localzip)
+
+    ## Return some variables so we know where to find things
+    return(taskname,taskno,fulltrainername)
 
 #def is_zip_file(file_path):
 #    try:

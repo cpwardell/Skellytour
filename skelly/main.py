@@ -34,7 +34,7 @@ import datetime
 import torch
 
 from skelly.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
-from skelly.nnunetv1_predict import predict_case
+from skelly.nnunetv1_predict import predict_case #, load_model_and_checkpoint_files #, restore_model
 
 def main():
 
@@ -99,7 +99,9 @@ def main():
     nnunetdir=nnunetv1_setup()
 
     ## Check that weights exist; if not, go get them
-    nnunetv1_weights(args.m,nnunetdir)
+    taskname,taskno,fulltrainername=nnunetv1_weights(args.m,nnunetdir)
+    #print(taskno)
+    #sys.exit()
 
     ## Run Skelly
     ## Example nnUNet_predict; this calls predict_simple.py
@@ -114,18 +116,35 @@ def main():
     # .skelly/nnunet/results/nnUNet/3d_fullres/Task815_75/nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1
     # each zip file should contain everything from Taskxxx onwards
 
-#    predict_case(model, list_of_lists[part_id::num_parts], output_files[part_id::num_parts], folds,
-#                  save_npz, num_threads_preprocessing, num_threads_nifti_save, lowres_segmentations, tta,
-#                  mixed_precision=mixed_precision, overwrite_existing=overwrite_existing,
-#                  all_in_gpu=all_in_gpu,
-#                  step_size=step_size, checkpoint_name=checkpoint_name,
-#                  segmentation_export_kwargs=segmentation_export_kwargs,
-#                  disable_postprocessing=disable_postprocessing)
-#
+    #predict_case(model, list_of_lists[part_id::num_parts], output_files[part_id::num_parts], folds,
+    #              num_threads_preprocessing, num_threads_nifti_save, lowres_segmentations, tta,
+    #              mixed_precision=mixed_precision, overwrite_existing=overwrite_existing,
+    #              all_in_gpu=all_in_gpu,
+    #              step_size=step_size, checkpoint_name=checkpoint_name,
+    #              segmentation_export_kwargs=segmentation_export_kwargs,
+    #              disable_postprocessing=disable_postprocessing)
+
+#    predict_cases(model, list_of_lists, output_filenames, folds, save_npz, num_threads_preprocessing,
+#                  num_threads_nifti_save, segs_from_prev_stage=None, do_tta=True, mixed_precision=True,
+#                  overwrite_existing=False,
+#                  all_in_gpu=False, step_size=0.5, checkpoint_name="model_final_checkpoint",
+#                  segmentation_export_kwargs: dict = None, disable_postprocessing: bool = False):
 
     ## model variable
     #model_folder_name = join(network_training_output_dir, model, task_name, trainer + "__" + args.plans_identifier)
     #os.path.join
+    model_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername)
+    print(model_folder_name)
+#
+    predict_case(model=model_folder_name, list_of_lists=[args.i], output_filenames=["output.nii.gz"], folds=(0, 1, 2, 3, 4),save_npz=False,
+                  num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
+                  mixed_precision=None, overwrite_existing=False,
+                  all_in_gpu=False,
+                  step_size=0.5, checkpoint_name="model_final_checkpoint",
+                  segmentation_export_kwargs= None,
+                  disable_postprocessing=True)
+
+    
 
 
 ## Execute main method

@@ -14,10 +14,118 @@
 #
 #    NOTICE: This code derived from nnunetv1: https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1
 
-from typing import Tuple, Union, List
+#from typing import Tuple, Union, List
 #from typing import Union
+from multiprocessing import Pool
+import os
+import torch
+import pickle
 
-def predict_case(model, list_of_lists, output_filenames, folds, save_npz, num_threads_preprocessing,
+def load_pickle(file: str, mode: str = 'rb'):
+    with open(file, mode) as f:
+        a = pickle.load(f)
+    return a
+
+def restore_model(pkl_file, checkpoint=None, train=False, fp16=None):
+    """
+    This is a utility function to load any nnUNet trainer from a pkl. It will recursively search
+    nnunet.trainig.network_training for the file that contains the trainer and instantiate it with the arguments saved in the pkl file. If checkpoint
+    is specified, it will furthermore load the checkpoint file in train/test mode (as specified by train).
+    The pkl file required here is the one that will be saved automatically when calling nnUNetTrainer.save_checkpoint.
+    :param pkl_file:
+    :param checkpoint:
+    :param train:
+    :param fp16: if None then we take no action. If True/False we overwrite what the model has in its init
+    :return:
+    """
+    info = load_pickle(pkl_file)
+    init = info['init']
+    name = info['name']
+    search_in = os.path.join(nnunet.__path__[0], "training", "network_training")
+    tr = recursive_find_python_class([search_in], name, current_module="nnunet.training.network_training")
+
+    if tr is None:
+        """
+        Fabian only. This will trigger searching for trainer classes in other repositories as well
+        """
+        try:
+            import meddec
+            search_in = os.path.join(meddec.__path__[0], "model_training")
+            tr = recursive_find_python_class([search_in], name, current_module="meddec.model_training")
+        except ImportError:
+            pass
+
+    if tr is None:
+        raise RuntimeError("Could not find the model trainer specified in checkpoint in nnunet.trainig.network_training. If it "
+                           "is not located there, please move it or change the code of restore_model. Your model "
+                           "trainer can be located in any directory within nnunet.trainig.network_training (search is recursive)."
+                           "\nDebug info: \ncheckpoint file: %s\nName of trainer: %s " % (checkpoint, name))
+    assert issubclass(tr, nnUNetTrainer), "The network trainer was found but is not a subclass of nnUNetTrainer. " \
+                                          "Please make it so!"
+
+    # this is now deprecated
+    """if len(init) == 7:
+        print("warning: this model seems to have been saved with a previous version of nnUNet. Attempting to load it "
+              "anyways. Expect the unexpected.")
+        print("manually editing init args...")
+        init = [init[i] for i in range(len(init)) if i != 2]"""
+
+    # ToDo Fabian make saves use kwargs, please...
+
+    trainer = tr(*init)
+
+    # We can hack fp16 overwriting into the trainer without changing the init arguments because nothing happens with
+    # fp16 in the init, it just saves it to a member variable
+    if fp16 is not None:
+        trainer.fp16 = fp16
+
+    trainer.process_plans(info['plans'])
+    if checkpoint is not None:
+        trainer.load_checkpoint(checkpoint, train)
+    return trainer
+
+def load_model_and_checkpoint_files(folder, folds=None, mixed_precision=None, checkpoint_name="model_best"):
+    """
+    used for if you need to ensemble the five models of a cross-validation. This will restore the model from the
+    checkpoint in fold 0, load all parameters of the five folds in ram and return both. This will allow for fast
+    switching between parameters (as opposed to loading them from disk each time).
+
+    This is best used for inference and test prediction
+    :param folder:
+    :param folds:
+    :param mixed_precision: if None then we take no action. If True/False we overwrite what the model has in its init
+    :return:
+    """
+    if isinstance(folds, str):
+        folds = [os.path.join(folder, "all")]
+        assert os.path.isdir(folds[0]), "no output folder for fold %s found" % folds
+    elif isinstance(folds, (list, tuple)):
+        if len(folds) == 1 and folds[0] == "all":
+            folds = [os.path.join(folder, "all")]
+        else:
+            folds = [os.path.join(folder, "fold_%d" % i) for i in folds]
+        assert all([os.path.isdir(i) for i in folds]), "list of folds specified but not all output folders are present"
+    elif isinstance(folds, int):
+        folds = [os.path.join(folder, "fold_%d" % folds)]
+        assert all([os.path.isdir(i) for i in folds]), "output folder missing for fold %d" % folds
+    elif folds is None:
+        print("folds is None so we will automatically look for output folders (not using \'all\'!)")
+        folds = subfolders(folder, prefix="fold")
+        print("found the following folds: ", folds)
+    else:
+        raise ValueError("Unknown value for folds. Type: %s. Expected: list of int, int, str or None", str(type(folds)))
+
+    trainer = restore_model(os.path.join(folds[0], "%s.model.pkl" % checkpoint_name), fp16=mixed_precision)
+    trainer.output_folder = folder
+    trainer.output_folder_base = folder
+    trainer.update_fold(0)
+    trainer.initialize(False)
+    all_best_model_files = [os.path.join(i, "%s.model" % checkpoint_name) for i in folds]
+    print("using the following model files: ", all_best_model_files)
+    all_params = [torch.load(i, map_location=torch.device('cpu')) for i in all_best_model_files]
+    return trainer, all_params
+
+def predict_case(model, list_of_lists, output_filenames, folds,save_npz, num_threads_preprocessing,
                  num_threads_nifti_save, segs_from_prev_stage=None, do_tta=True, mixed_precision=True,
                  overwrite_existing=False,
                  all_in_gpu=False, step_size=0.5, checkpoint_name="model_final_checkpoint",
@@ -52,12 +160,13 @@ def predict_case(model, list_of_lists, output_filenames, folds, save_npz, num_th
         if not f.endswith(".nii.gz"):
             f, _ = os.path.splitext(f)
             f = f + ".nii.gz"
-        cleaned_output_files.append(join(dr, f))
+        cleaned_output_files.append(os.path.join(dr, f))
 
     if not overwrite_existing:
         print("number of cases:", len(list_of_lists))
         # if save_npz=True then we should also check for missing npz files
-        not_done_idx = [i for i, j in enumerate(cleaned_output_files) if (not isfile(j)) or (save_npz and not isfile(j[:-7] + '.npz'))]
+        not_done_idx = [i for i, j in enumerate(cleaned_output_files) if (not os.path.isfile(j)) or (save_npz and not os.path.isfile(j[:-7] + '.npz'))]
+       #not_done_idx = [i for i, j in enumerate(cleaned_output_files) if (not os.path.isfile(j)) or (not isfile(j[:-7] + '.npz'))]
 
         cleaned_output_files = [cleaned_output_files[i] for i in not_done_idx]
         list_of_lists = [list_of_lists[i] for i in not_done_idx]
@@ -122,10 +231,10 @@ def predict_case(model, list_of_lists, output_filenames, folds, save_npz, num_th
             transpose_backward = trainer.plans.get('transpose_backward')
             softmax = softmax.transpose([0] + [i + 1 for i in transpose_backward])
 
-        if save_npz:
-            npz_file = output_filename[:-7] + ".npz"
-        else:
-            npz_file = None
+        #if save_npz:
+        #    npz_file = output_filename[:-7] + ".npz"
+        #else:
+        npz_file = None
 
         if hasattr(trainer, 'regions_class_order'):
             region_class_order = trainer.regions_class_order
@@ -163,8 +272,8 @@ def predict_case(model, list_of_lists, output_filenames, folds, save_npz, num_th
     # first load the postprocessing properties if they are present. Else raise a well visible warning
     if not disable_postprocessing:
         results = []
-        pp_file = join(model, "postprocessing.json")
-        if isfile(pp_file):
+        pp_file = os.path.join(model, "postprocessing.json")
+        if os.path.isfile(pp_file):
             print("postprocessing...")
             shutil.copy(pp_file, os.path.abspath(os.path.dirname(output_filenames[0])))
             # for_which_classes stores for which of the classes everything but the largest connected component needs to be
