@@ -25,7 +25,7 @@ def nnunetv1_setup(nnunetdir="~"):
 
     ## Create base directory to store all nnunet models
     nnunetdir=os.path.join(os.path.expanduser(nnunetdir),".skelly")
-    logging.info("Models and temporary data stored here: "+str(nnunetdir))
+    logging.info("Models are stored here: "+str(nnunetdir))
     os.makedirs(nnunetdir, exist_ok=True)
 
     ## Export required nnunet environment variables (only :)
@@ -49,14 +49,25 @@ def nnunetv1_weights(model,nnunetdir):
         logging.error(model+" is not an acceptable model name.  Please select from "+quoted_models)
         sys.exit()
 
-    ## Set location to look for model files
+    ## Set variables for each model, including where to find files (locally or online)
+    if model=="low":
+        taskname="Task812"
+        taskno="812"
+        fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
+        modelfolds=range(5)
+        modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task812.zip"
     if model=="medium":
-        taskname="Task815" ## should be 815
-        taskno="815" ## should be 815
+        taskname="Task815"
+        taskno="815"
         fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
         modelfolds=range(5)
         modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task815.zip"
-        #modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task666.zip"
+    if model=="high":
+        taskname="Task810"
+        taskno="810"
+        fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
+        modelfolds=range(5)
+        modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task810.zip"
 
     ## Check files exist; if not, fetch them
     models_and_pkls=[]
@@ -85,21 +96,6 @@ def nnunetv1_weights(model,nnunetdir):
     ## Return some variables so we know where to find things
     return(taskname,taskno,fulltrainername)
 
-#def is_zip_file(file_path):
-#    try:
-#        with zipfile.ZipFile(file_path) as zf:
-#            return zf.testzip() is None
-#    except zipfile.BadZipFile:
-#        return False
 
-        #modelname="3d_fullres"
-        # -tr nnUNetTrainerV2_noMirroring 
-        # --disable_tta
-
-    #file_path = "/path/to/file.txt"
-    #if os.path.isfile(file_path):
-    #    print("File exists")
-    #else:
-    #    print("File does not exist")
 
 

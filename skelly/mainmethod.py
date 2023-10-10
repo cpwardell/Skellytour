@@ -18,11 +18,11 @@
 ## Author: CP Wardell
 ## Description: Creates bone segmentations from CT data
 
-## TO DO
-#Helpers to suppress stdout prints from nnunet
-#https://stackoverflow.com/questions/2828953/silence-the-stdout-of-a-function-in-python-without-trashing-sys-stdout-and-resto
-
-##
+## To do:
+## Add other models
+## Add postprocessing
+## Add inner/outer method
+#####
 
 
 ## Import packages
@@ -34,7 +34,13 @@ import datetime
 import torch
 
 from skelly.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
-from skelly.nnunetv1_predict import predict_case #, load_model_and_checkpoint_files #, restore_model
+from skelly.nnunetv1_predict import predict_case 
+
+def exitlog(starttime):
+    endtime=datetime.datetime.now()
+    logging.info("End time is: "+str(endtime.strftime("%Y-%m-%d %H:%M:%S")))
+    logging.info("Total time taken: "+str(endtime-starttime))
+    sys.exit()
 
 def main():
 
@@ -46,9 +52,10 @@ def main():
             self.print_help()
             sys.exit(2)
     parser=MyParser(description="Skelly: Bone Segmentation from CT scans", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
-    parser.add_argument("-i", type=str, help="absolute path to input NIfTI file", required=True)
-    parser.add_argument("-o", type=str, help="absolute path to output directory", required=True)
-    parser.add_argument("-m", type=str, help="model to use", required=False, default="medium")
+    parser.add_argument("-i", type=str, help="path to input NIfTI file", required=True)
+    parser.add_argument("-o", type=str, help="path to output directory", required=False, default=".")
+    parser.add_argument("-m", type=str, help="model to use; can be low (17 labels), medium (38 labels, default), high (60 labels)", required=False, default="medium")
+    parser.add_argument("--overwrite", help="overwrite previous results if they exist", required=False, default=False, action='store_true')
     args=parser.parse_args()
 
     ## Turn arguments into a nice string for printing
@@ -74,11 +81,11 @@ def main():
     ## Write the command line parameters to the log file
     starttime=datetime.datetime.now()
     logging.info("Skelly was invoked using this command: "+printargs)
-    logging.info("Start time is: "+str(starttime))
+    logging.info("Start time is: "+str(starttime.strftime("%Y-%m-%d %H:%M:%S")))
     logging.info("Input file is: "+str(args.i))
     logging.info("Output directory is: "+str(args.o))
     logging.info("Model used is: "+str(args.m))
-    
+
     ## Check for GPUs
     gpustatus=torch.cuda.is_available()
     if gpustatus:
@@ -89,62 +96,33 @@ def main():
         logging.info("Compute device is: "+str(computedevice))
         logging.warning("No GPU detected, prediction will be much slower")
 
-
-
     ## Set up nnunet
-    ## We need these three environment variables:
-    #export nnUNet_raw_data_base="/data"
-    #export nnUNet_preprocessed="/data/preprocessed"
-    #export RESULTS_FOLDER="/data/results"
     nnunetdir=nnunetv1_setup()
 
     ## Check that weights exist; if not, go get them
     taskname,taskno,fulltrainername=nnunetv1_weights(args.m,nnunetdir)
-    #print(taskno)
-    #sys.exit()
 
     ## Run Skelly
-    ## Example nnUNet_predict; this calls predict_simple.py
-    #nnUNet_predict -i /data/temp 
-    # -o /data/OUTPUT/OUTPUT815_fullres_trimmed816 
-    # -t 815 
-    # -m 3d_fullres  
-    # -tr nnUNetTrainerV2_noMirroring 
-    # --disable_tta
-
-    ## Check if the model weights exist.  If not, download them to a directory in the user's home dir e.g. 
-    # .skelly/nnunet/results/nnUNet/3d_fullres/Task815_75/nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1
-    # each zip file should contain everything from Taskxxx onwards
-
-    #predict_case(model, list_of_lists[part_id::num_parts], output_files[part_id::num_parts], folds,
-    #              num_threads_preprocessing, num_threads_nifti_save, lowres_segmentations, tta,
-    #              mixed_precision=mixed_precision, overwrite_existing=overwrite_existing,
-    #              all_in_gpu=all_in_gpu,
-    #              step_size=step_size, checkpoint_name=checkpoint_name,
-    #              segmentation_export_kwargs=segmentation_export_kwargs,
-    #              disable_postprocessing=disable_postprocessing)
-
-#    predict_cases(model, list_of_lists, output_filenames, folds, save_npz, num_threads_preprocessing,
-#                  num_threads_nifti_save, segs_from_prev_stage=None, do_tta=True, mixed_precision=True,
-#                  overwrite_existing=False,
-#                  all_in_gpu=False, step_size=0.5, checkpoint_name="model_final_checkpoint",
-#                  segmentation_export_kwargs: dict = None, disable_postprocessing: bool = False):
-
-    ## model variable
-    #model_folder_name = join(network_training_output_dir, model, task_name, trainer + "__" + args.plans_identifier)
-    #os.path.join
+    ## Set up input variables for prediction    
     model_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername)
-    print(model_folder_name)
-#
-    predict_case(model=model_folder_name, list_of_lists=[args.i], output_filenames=["output.nii.gz"], folds=(0, 1, 2, 3, 4),save_npz=False,
+    output_filename=os.path.join(args.o,os.path.basename(args.i))
+
+    if not args.overwrite and os.path.exists(output_filename):
+        logging.info("Output already exists: "+str(output_filename))
+        logging.info("To overwrite existing output, append the --overwrite flag to your command")
+        exitlog(starttime)
+
+    logging.info("Prediction starting")
+    predict_case(model=model_folder_name, list_of_lists=[[args.i]], output_filenames=[output_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
                   num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
-                  mixed_precision=None, overwrite_existing=False,
+                  mixed_precision=None, overwrite_existing=args.overwrite,
                   all_in_gpu=False,
                   step_size=0.5, checkpoint_name="model_final_checkpoint",
-                  segmentation_export_kwargs= None,
+                  segmentation_export_kwargs=None,
                   disable_postprocessing=True)
 
-    
+    logging.info("Prediction complete, output is: "+str(output_filename))
+    exitlog(starttime)
 
 
 ## Execute main method
