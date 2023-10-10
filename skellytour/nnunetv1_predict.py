@@ -14,8 +14,6 @@
 #
 #    NOTICE: This code derived from nnunetv1: https://github.com/MIC-DKFZ/nnUNet/tree/nnunetv1
 
-#from typing import Tuple, Union, List
-#from typing import Union
 from multiprocessing import Pool
 import os
 import torch

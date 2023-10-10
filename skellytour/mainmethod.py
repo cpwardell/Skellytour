@@ -14,7 +14,7 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-## Title: Skelly: Bone Segmentation from CT scans
+## Title: Skellytour: Bone Segmentation from CT scans
 ## Author: CP Wardell
 ## Description: Creates bone segmentations from CT data
 
@@ -33,8 +33,9 @@ import logging
 import datetime
 import torch
 
-from skelly.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
-from skelly.nnunetv1_predict import predict_case 
+from skellytour.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
+from skellytour.nnunetv1_predict import predict_case 
+from skellytour.postprocessing import postprocessing
 
 def exitlog(starttime):
     endtime=datetime.datetime.now()
@@ -51,11 +52,12 @@ def main():
             sys.stderr.write('error: %s\n' % message)
             self.print_help()
             sys.exit(2)
-    parser=MyParser(description="Skelly: Bone Segmentation from CT scans", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser=MyParser(description="Skellytour: Bone Segmentation from CT scans", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
     parser.add_argument("-i", type=str, help="path to input NIfTI file", required=True)
     parser.add_argument("-o", type=str, help="path to output directory", required=False, default=".")
     parser.add_argument("-m", type=str, help="model to use; can be low (17 labels), medium (38 labels, default), high (60 labels)", required=False, default="medium")
     parser.add_argument("--overwrite", help="overwrite previous results if they exist", required=False, default=False, action='store_true')
+    parser.add_argument("--nopp", help="skip postprocessing on predicted segmentations", required=False, default=False, action='store_true')
     args=parser.parse_args()
 
     ## Turn arguments into a nice string for printing
@@ -80,7 +82,7 @@ def main():
 
     ## Write the command line parameters to the log file
     starttime=datetime.datetime.now()
-    logging.info("Skelly was invoked using this command: "+printargs)
+    logging.info("Skellytour was invoked using this command: "+printargs)
     logging.info("Start time is: "+str(starttime.strftime("%Y-%m-%d %H:%M:%S")))
     logging.info("Input file is: "+str(args.i))
     logging.info("Output directory is: "+str(args.o))
@@ -102,26 +104,42 @@ def main():
     ## Check that weights exist; if not, go get them
     taskname,taskno,fulltrainername=nnunetv1_weights(args.m,nnunetdir)
 
-    ## Run Skelly
     ## Set up input variables for prediction    
     model_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername)
-    output_filename=os.path.join(args.o,os.path.basename(args.i))
+    segmentation_filename=os.path.join(args.o,os.path.basename(args.i))
+    postprocessed_filename=segmentation_filename[:-7]+"_postprocessed.nii.gz"
 
-    if not args.overwrite and os.path.exists(output_filename):
-        logging.info("Output already exists: "+str(output_filename))
+    #print(postprocessed_filename)
+    #sys.exit()
+
+    ## Avoid overwriting if output exists
+    if not args.overwrite and os.path.exists(segmentation_filename):
+        logging.info("Segmentation output already exists: "+str(segmentation_filename))
         logging.info("To overwrite existing output, append the --overwrite flag to your command")
-        exitlog(starttime)
+    else:
+        ## Do prediction
+        logging.info("Prediction starting")
+        predict_case(model=model_folder_name, list_of_lists=[[args.i]], output_filenames=[segmentation_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
+                      num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
+                      mixed_precision=None, overwrite_existing=args.overwrite,
+                      all_in_gpu=False,
+                      step_size=0.5, checkpoint_name="model_final_checkpoint",
+                      segmentation_export_kwargs=None,
+                      disable_postprocessing=True)
+        logging.info("Prediction complete, output is: "+str(segmentation_filename))
 
-    logging.info("Prediction starting")
-    predict_case(model=model_folder_name, list_of_lists=[[args.i]], output_filenames=[output_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
-                  num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
-                  mixed_precision=None, overwrite_existing=args.overwrite,
-                  all_in_gpu=False,
-                  step_size=0.5, checkpoint_name="model_final_checkpoint",
-                  segmentation_export_kwargs=None,
-                  disable_postprocessing=True)
+    ## Perform postprocessing if desired and segmentation completed
+    if not args.nopp and os.path.exists(segmentation_filename):
+        ## Avoid overwriting if output exists
+        if not args.overwrite and os.path.exists(postprocessed_filename):
+            logging.info("Postprocessed output already exists: "+str(postprocessed_filename))
+            logging.info("To overwrite existing output, append the --overwrite flag to your command")
+        else:
+            logging.info("Performing postprocessing")
+            postprocessing(args)
+            logging.info("Postprocessing complete, output is: "+str(postprocessed_filename))
 
-    logging.info("Prediction complete, output is: "+str(output_filename))
+    ## Wrap up
     exitlog(starttime)
 
 

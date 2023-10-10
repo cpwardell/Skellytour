@@ -24,7 +24,7 @@ import zipfile
 def nnunetv1_setup(nnunetdir="~"):
 
     ## Create base directory to store all nnunet models
-    nnunetdir=os.path.join(os.path.expanduser(nnunetdir),".skelly")
+    nnunetdir=os.path.join(os.path.expanduser(nnunetdir),".skellytour")
     logging.info("Models are stored here: "+str(nnunetdir))
     os.makedirs(nnunetdir, exist_ok=True)
 
@@ -55,19 +55,19 @@ def nnunetv1_weights(model,nnunetdir):
         taskno="812"
         fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
         modelfolds=range(5)
-        modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task812.zip"
+        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.1/Task812.zip"
     if model=="medium":
         taskname="Task815"
         taskno="815"
         fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
         modelfolds=range(5)
-        modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task815.zip"
+        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.1/Task815.zip"
     if model=="high":
         taskname="Task810"
         taskno="810"
         fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
         modelfolds=range(5)
-        modelurl="https://github.com/cpwardell/Skelly/releases/download/v0.0.1/Task810.zip"
+        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.1/Task810.zip"
 
     ## Check files exist; if not, fetch them
     models_and_pkls=[]
