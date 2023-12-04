@@ -68,6 +68,12 @@ def nnunetv1_weights(model,nnunetdir):
         fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
         modelfolds=range(5)
         modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.1/Task810.zip"
+    if model=="subseg":
+        taskname="Task850"
+        taskno="850"
+        fulltrainername="nnUNetTrainerV2__nnUNetPlansv2.1"
+        modelfolds=range(5)
+        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.1/Task850.zip"
 
     ## Check files exist; if not, fetch them
     models_and_pkls=[]

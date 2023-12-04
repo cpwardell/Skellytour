@@ -58,6 +58,7 @@ def main():
     parser.add_argument("-m", type=str, help="model to use; can be low (17 labels), medium (38 labels, default), high (60 labels)", required=False, default="medium")
     parser.add_argument("--overwrite", help="overwrite previous results if they exist", required=False, default=False, action='store_true')
     parser.add_argument("--nopp", help="skip postprocessing on predicted segmentations", required=False, default=False, action='store_true')
+    parser.add_argument("--subseg", help="perform subsegmentation, assigning trabecular and cortical labels", required=False, default=False, action='store_true')
     args=parser.parse_args()
 
     ## Turn arguments into a nice string for printing
@@ -104,13 +105,16 @@ def main():
     ## Check that weights exist; if not, go get them
     taskname,taskno,fulltrainername=nnunetv1_weights(args.m,nnunetdir)
 
-    ## Set up input variables for prediction    
+    ## Set up input variables for main prediction    
     model_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername)
     segmentation_filename=os.path.join(args.o,os.path.basename(args.i))
     postprocessed_filename=segmentation_filename[:-7]+"_postprocessed.nii.gz"
 
-    #print(postprocessed_filename)
-    #sys.exit()
+    ## Get model and set up input variables for subsegmentation
+    if args.subseg:
+        subsegtaskname,subsegtaskno,subsegfulltrainername=nnunetv1_weights("subseg",nnunetdir)
+        subsegmodel_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",subsegtaskname,subsegfulltrainername)
+        subseg_filename=segmentation_filename[:-7]+"_postprocessed_subseg.nii.gz"
 
     ## Avoid overwriting if output exists
     if not args.overwrite and os.path.exists(segmentation_filename):
@@ -138,6 +142,24 @@ def main():
             logging.info("Performing postprocessing")
             postprocessing(args)
             logging.info("Postprocessing complete, output is: "+str(postprocessed_filename))
+
+    ## Perform subsegmentation and produce cortical/trabecular labels
+    ## We only allow postprocessed segmentations as input
+    if args.subseg and os.path.exists(postprocessed_filename):
+        if not args.overwrite and os.path.exists(subseg_filename):
+            logging.info("Subsegmentation output already exists: "+str(subseg_filename))
+            logging.info("To overwrite existing output, append the --overwrite flag to your command")
+        else:
+            logging.info("Performing subsegmentation")
+            predict_case(model=subsegmodel_folder_name, list_of_lists=[[postprocessed_filename]], output_filenames=[subseg_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
+                      num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=True,
+                      mixed_precision=None, overwrite_existing=args.overwrite,
+                      all_in_gpu=False,
+                      step_size=0.5, checkpoint_name="model_final_checkpoint",
+                      segmentation_export_kwargs=None,
+                      disable_postprocessing=True)
+            ## NEED TO DO POSTPROCESSING
+            logging.info("Subsegmentation complete, output is: "+str(subseg_filename))
 
     ## Wrap up
     exitlog(starttime)
