@@ -41,7 +41,7 @@ def nnunetv1_setup(nnunetdir="~"):
 
 def nnunetv1_weights(model,nnunetdir):
     ## Check that the required model exists locally.  If not, fetch it.
-    extant_models=["low","medium","high"]
+    extant_models=["low","medium","high","subseg"]
 
     ## If model name is incorrect, exit
     if model not in extant_models:

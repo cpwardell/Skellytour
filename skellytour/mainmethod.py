@@ -15,15 +15,8 @@
 # limitations under the License.
 
 ## Title: Skellytour: Bone Segmentation from CT scans
-## Author: CP Wardell
+## Authors: CP Wardell and D Mann
 ## Description: Creates bone segmentations from CT data
-
-## To do:
-## Add other models
-## Add postprocessing
-## Add inner/outer method
-#####
-
 
 ## Import packages
 import os
@@ -36,6 +29,7 @@ import torch
 from skellytour.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
 from skellytour.nnunetv1_predict import predict_case 
 from skellytour.postprocessing import postprocessing
+from skellytour.subseg_postprocessing import subsegpostprocessing
 
 def exitlog(starttime):
     endtime=datetime.datetime.now()
@@ -107,7 +101,8 @@ def main():
 
     ## Set up input variables for main prediction    
     model_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername)
-    segmentation_filename=os.path.join(args.o,os.path.basename(args.i))
+    samplename=os.path.basename(args.i)[:-7]
+    segmentation_filename=os.path.join(args.o,samplename+"_"+args.m+".nii.gz")
     postprocessed_filename=segmentation_filename[:-7]+"_postprocessed.nii.gz"
 
     ## Get model and set up input variables for subsegmentation
@@ -115,6 +110,7 @@ def main():
         subsegtaskname,subsegtaskno,subsegfulltrainername=nnunetv1_weights("subseg",nnunetdir)
         subsegmodel_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",subsegtaskname,subsegfulltrainername)
         subseg_filename=segmentation_filename[:-7]+"_postprocessed_subseg.nii.gz"
+        subseg_postprocessed_filename=subseg_filename[:-7]+"_postprocessed.nii.gz"
 
     ## Avoid overwriting if output exists
     if not args.overwrite and os.path.exists(segmentation_filename):
@@ -151,15 +147,17 @@ def main():
             logging.info("To overwrite existing output, append the --overwrite flag to your command")
         else:
             logging.info("Performing subsegmentation")
-            predict_case(model=subsegmodel_folder_name, list_of_lists=[[postprocessed_filename]], output_filenames=[subseg_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
-                      num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=True,
+            predict_case(model=subsegmodel_folder_name, list_of_lists=[[args.i]], output_filenames=[subseg_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
+                      num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
                       mixed_precision=None, overwrite_existing=args.overwrite,
                       all_in_gpu=False,
                       step_size=0.5, checkpoint_name="model_final_checkpoint",
                       segmentation_export_kwargs=None,
                       disable_postprocessing=True)
-            ## NEED TO DO POSTPROCESSING
             logging.info("Subsegmentation complete, output is: "+str(subseg_filename))
+            logging.info("Performing subsegmentation postprocessing")
+            subsegpostprocessing(subseg_filename,postprocessed_filename,subseg_postprocessed_filename)
+            logging.info("Subsegmentation postprocessing complete, output is: "+str(subseg_postprocessed_filename))
 
     ## Wrap up
     exitlog(starttime)
