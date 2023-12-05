@@ -8,7 +8,8 @@ from skimage import measure
 def postprocessing(args):
 
     ## Define some variables for input/output files
-    segmentation_filename=os.path.join(args.o,os.path.basename(args.i))
+    samplename=os.path.basename(args.i)[:-7]
+    segmentation_filename=os.path.join(args.o,samplename+"_"+args.m+".nii.gz")
     postprocessed_filename=segmentation_filename[:-7]+"_postprocessed.nii.gz"
 
     ## Minimum island size to keep is 1000 mm3

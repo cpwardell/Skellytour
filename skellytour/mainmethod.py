@@ -53,6 +53,7 @@ def main():
     parser.add_argument("--overwrite", help="overwrite previous results if they exist", required=False, default=False, action='store_true')
     parser.add_argument("--nopp", help="skip postprocessing on predicted segmentations", required=False, default=False, action='store_true')
     parser.add_argument("--subseg", help="perform subsegmentation, assigning trabecular and cortical labels", required=False, default=False, action='store_true')
+    parser.add_argument("--fast", help="perform segmentation tasks with a single fold, not the full ensemble model. Not recommended", required=False, default=False, action='store_true')
     args=parser.parse_args()
 
     ## Turn arguments into a nice string for printing
@@ -105,6 +106,13 @@ def main():
     segmentation_filename=os.path.join(args.o,samplename+"_"+args.m+".nii.gz")
     postprocessed_filename=segmentation_filename[:-7]+"_postprocessed.nii.gz"
 
+    ## Set up folds; if --fast is used, use only the 0th fold
+    if args.fast:
+        logging.warning("Fast mode enabled, only using a single fold for prediction")
+        folds=(0,)
+    else:
+        folds=(0,1,2,3,4)
+
     ## Get model and set up input variables for subsegmentation
     if args.subseg:
         subsegtaskname,subsegtaskno,subsegfulltrainername=nnunetv1_weights("subseg",nnunetdir)
@@ -119,7 +127,7 @@ def main():
     else:
         ## Do prediction
         logging.info("Prediction starting")
-        predict_case(model=model_folder_name, list_of_lists=[[args.i]], output_filenames=[segmentation_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
+        predict_case(model=model_folder_name, list_of_lists=[[args.i]], output_filenames=[segmentation_filename], folds=folds,save_npz=False,
                       num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
                       mixed_precision=None, overwrite_existing=args.overwrite,
                       all_in_gpu=False,
@@ -147,7 +155,7 @@ def main():
             logging.info("To overwrite existing output, append the --overwrite flag to your command")
         else:
             logging.info("Performing subsegmentation")
-            predict_case(model=subsegmodel_folder_name, list_of_lists=[[args.i]], output_filenames=[subseg_filename], folds=(0, 1, 2, 3, 4),save_npz=False,
+            predict_case(model=subsegmodel_folder_name, list_of_lists=[[args.i]], output_filenames=[subseg_filename], folds=folds,save_npz=False,
                       num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
                       mixed_precision=None, overwrite_existing=args.overwrite,
                       all_in_gpu=False,
