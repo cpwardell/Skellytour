@@ -39,6 +39,13 @@ def exitlog(starttime):
 
 def main():
 
+    ## Check if GPU is available
+    gpustatus=torch.cuda.is_available()
+    if gpustatus:
+        epilogtext="GPU detected"
+    else:
+        epilogtext="No GPU detected, prediction will be much slower"
+
     ## Gather command line args
     ## Create a new argparse class that will print the help message by default
     class MyParser(argparse.ArgumentParser):
@@ -46,7 +53,8 @@ def main():
             sys.stderr.write('error: %s\n' % message)
             self.print_help()
             sys.exit(2)
-    parser=MyParser(description="Skellytour: Bone Segmentation from CT scans", formatter_class=argparse.ArgumentDefaultsHelpFormatter)
+    parser=MyParser(description="Skellytour: Bone Segmentation from CT scans", formatter_class=argparse.ArgumentDefaultsHelpFormatter,
+        epilog=epilogtext)
     parser.add_argument("-i", type=str, help="path to input NIfTI file", required=True)
     parser.add_argument("-o", type=str, help="path to output directory", required=False, default=".")
     parser.add_argument("-m", type=str, help="model to use; can be low (17 labels), medium (38 labels, default), high (60 labels)", required=False, default="medium")
@@ -84,8 +92,7 @@ def main():
     logging.info("Output directory is: "+str(args.o))
     logging.info("Model used is: "+str(args.m))
 
-    ## Check for GPUs
-    gpustatus=torch.cuda.is_available()
+    ## Print appropriate message regarding GPU status
     if gpustatus:
         computedevice="gpu"
         logging.info("Compute device is: "+str(computedevice))
