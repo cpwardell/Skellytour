@@ -1,6 +1,7 @@
 <p align="center">
   <img src="/www/skellytour_banner.png">
 </p>
+
 # Skellytour: Bone Segmentation from Whole-Body CT scans
 ## Key Features
 - **Segments bones from any CT scan**
