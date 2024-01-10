@@ -12,7 +12,7 @@ authors = [
     { name = "Christopher Wardell", email = "cpwardell@uams.edu"},
     { name = "Daniel Mann", email = "dmann3@uams.edu"}
 ]
-readme = "readme.md"
+readme = "README.md"
 keywords = [
     'deep learning',
     'image segmentation',
@@ -34,6 +34,9 @@ dependencies = [
     "scikit-image>=0.19.3",
     "torch"
 ]
+
+[tool.setuptools]
+packages = ["skellytour"]
 
 [project.urls]
 homepage = "https://github.com/cpwardell/Skellytour"

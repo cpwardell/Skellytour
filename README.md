@@ -2,7 +2,7 @@
   <img src="/www/skellytour_banner.png">
 </p>
 
-# Skellytour: Bone Segmentation from Whole-Body CT scans
+# Skellytour: Automated Skeleton Segmentation from Whole-Body CT Images
 ## Key Features
 - **Segments bones from any CT scan**
 - **Based on the state-of-the-art nnU-Net package**
@@ -26,7 +26,7 @@ For more information and if you use Skellytour in your work, please cite our upc
 - [Label List and Description](#label-list-and-description)
 
 ## Introduction
-Segmenting bones from CT scans is required for a range of both clinical and research applications; e.g. diagnosing fractures, surgical planning, producing 3D models of bones, quantitative image analysis. However, segmentation is a time-consuming and laborious process. We present `Skellytour`, an easy-to-use tool for bone segmentation from CT scans. `Skellytour` is based on the state-of-the-art [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) and was trained using a high quality, manually segmented dataset of elderly patients with low bone density and osteolytic lesions. Segmentations were verified by a board-certified radiologist and a board-certified nuclear medicine physician. Tested against an internal and two external datasets, the medium model achieved high metrics (Dice scores of 0.935, 0.936, 0.953 and Normalized Surface Distance of 0.993, 0.999, 0.990). It includes 3 models with increasing numbers of labels (17, 38 or 60 labels), and includes a separate label for high-radiodensity artifacts such as surgically implanted hardware. It includes an optional model to subsegment bones into cortical and trabecular regions.
+Segmenting bones from CT scans is required for a range of both clinical and research applications; e.g. diagnosing fractures, surgical planning, producing 3D models of bones, quantitative image analysis. However, segmentation is a time-consuming and laborious process. We present `Skellytour`, an easy-to-use tool for bone segmentation from CT scans. `Skellytour` is based on the state-of-the-art [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) and was trained using a high quality, manually segmented dataset of elderly patients with low bone density and osteolytic lesions. Segmentations were verified by a board-certified radiologist and a board-certified nuclear medicine physician. Tested against an internal and two external datasets, the medium model achieved high metrics (Dice scores of 0.935, 0.936, 0.953 and Normalized Surface Distance of 0.993, 0.999, 0.990). It includes 3 models with increasing numbers of labels (17, 38 or 60 labels), with a separate label for high-radiodensity artifacts such as surgically implanted hardware. An optional model subsegments bones into cortical and trabecular regions.
 
 ## Installation
 It is recommended but not required that you install Skellytour in a conda environment using Python v3.9:
