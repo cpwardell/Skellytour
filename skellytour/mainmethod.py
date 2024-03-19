@@ -26,8 +26,12 @@ import logging
 import datetime
 import torch
 
-from skellytour.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
-from skellytour.nnunetv1_predict import predict_case 
+#from skellytour.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
+#from skellytour.nnunetv1_predict import predict_case 
+
+from skellytour.nnunetv2_setup import nnunetv2_setup, nnunetv2_weights
+from skellytour.nnunetv2_predict import predict_case 
+
 from skellytour.postprocessing import postprocessing
 from skellytour.subseg_postprocessing import subsegpostprocessing
 
@@ -102,10 +106,16 @@ def main():
         logging.warning("No GPU detected, prediction will be much slower")
 
     ## Set up nnunet
-    nnunetdir=nnunetv1_setup()
+    nnunetdir=nnunetv2_setup()
 
     ## Check that weights exist; if not, go get them
-    taskname,taskno,fulltrainername=nnunetv1_weights(args.m,nnunetdir)
+    taskname,taskno,fulltrainername=nnunetv2_weights(args.m,nnunetdir)
+
+    print(taskname)
+    print(taskno)
+    print(fulltrainername)
+
+    sys.exit()
 
     ## Set up input variables for main prediction    
     model_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername)
@@ -122,7 +132,7 @@ def main():
 
     ## Get model and set up input variables for subsegmentation
     if args.subseg:
-        subsegtaskname,subsegtaskno,subsegfulltrainername=nnunetv1_weights("subseg",nnunetdir)
+        subsegtaskname,subsegtaskno,subsegfulltrainername=nnunetv2_weights("subseg",nnunetdir)
         subsegmodel_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",subsegtaskname,subsegfulltrainername)
         subseg_filename=segmentation_filename[:-7]+"_postprocessed_subseg.nii.gz"
         subseg_postprocessed_filename=subseg_filename[:-7]+"_postprocessed.nii.gz"
