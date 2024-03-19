@@ -25,13 +25,10 @@ import argparse
 import logging
 import datetime
 import torch
-
-#from skellytour.nnunetv1_setup import nnunetv1_setup, nnunetv1_weights
-#from skellytour.nnunetv1_predict import predict_case 
+import cpuinfo
 
 from skellytour.nnunetv2_setup import nnunetv2_setup, nnunetv2_weights
 from skellytour.nnunetv2_predict import predict_case 
-
 from skellytour.postprocessing import postprocessing
 from skellytour.subseg_postprocessing import subsegpostprocessing
 
@@ -43,12 +40,17 @@ def exitlog(starttime):
 
 def main():
 
-    ## Check if GPU is available
+    ## Check if GPU is available and print count
     gpustatus=torch.cuda.is_available()
     if gpustatus:
-        epilogtext="GPU detected"
+        devicecount=torch.cuda.device_count()
+        if(devicecount==1):
+            gputext="GPU"
+        else:
+            gputext="GPUs"
+        epilogtext=str(devicecount)+" "+gputext+" detected"
     else:
-        epilogtext="No GPU detected, prediction will be much slower"
+        epilogtext="No GPUs detected, prediction will be much slower"
 
     ## Gather command line args
     ## Create a new argparse class that will print the help message by default
@@ -61,18 +63,20 @@ def main():
         epilog=epilogtext)
     parser.add_argument("-i", type=str, help="path to input NIfTI file", required=True)
     parser.add_argument("-o", type=str, help="path to output directory", required=False, default=".")
-    parser.add_argument("-m", type=str, help="model to use; can be low (17 labels), medium (38 labels, default), high (60 labels)", required=False, default="medium")
+    parser.add_argument("-m", type=str, help="model to use; can be low (17 labels), medium (38 labels, default), high (60 labels)", required=False, default="medium", choices=["low","medium","high"])
+    parser.add_argument("-c", type=int, help="number of CPU cores to use for preprocessing and postprocessing", required=False, default=6)
+    parser.add_argument("-d", type=str, help="Compute device to use", required=False, default="gpu", choices=["gpu","cpu","mps"])
+    parser.add_argument("-g", type=int, help="GPU to use", required=False, default=0)
     parser.add_argument("--overwrite", help="overwrite previous results if they exist", required=False, default=False, action='store_true')
     parser.add_argument("--nopp", help="skip postprocessing on predicted segmentations", required=False, default=False, action='store_true')
-    parser.add_argument("--subseg", help="perform subsegmentation, assigning trabecular and cortical labels", required=False, default=False, action='store_true')
+    parser.add_argument("--subseg", help="perform subsegmentation, to predict trabecular and cortical labels", required=False, default=False, action='store_true')
     parser.add_argument("--fast", help="perform segmentation tasks with a single fold, not the full ensemble model. Not recommended", required=False, default=False, action='store_true')
     args=parser.parse_args()
 
     ## Turn arguments into a nice string for printing
     printargs=str(sys.argv).replace(",","").replace("'","").replace("[","").replace("]","")
 
-    ## Create directory to put results in
-    ## Trycatch prevents exception if location is unwritable 
+    ## Create directory to put results in, exit if location is unwritable 
     try:
         os.makedirs(args.o,exist_ok=True)
     except Exception as e:
@@ -95,30 +99,38 @@ def main():
     logging.info("Input file is: "+str(args.i))
     logging.info("Output directory is: "+str(args.o))
     logging.info("Model used is: "+str(args.m))
+    logging.info("CPU cores used for pre/postprocessing: "+str(args.c))
 
-    ## Print appropriate message regarding GPU status
-    if gpustatus:
-        computedevice="gpu"
-        logging.info("Compute device is: "+str(computedevice))
-    else:
-        computedevice="cpu"
-        logging.info("Compute device is: "+str(computedevice))
-        logging.warning("No GPU detected, prediction will be much slower")
+    ## Determine which compute device to use for prediction
+    if args.d=="gpu":
+        try:
+            gpuname=torch.cuda.get_device_name(args.g)
+            # Multithreading in torch doesn't help nnU-Net if run on GPU
+            torch.set_num_threads(1)
+            torch.set_num_interop_threads(1)
+        except Exception as e:
+            logging.error("CRITICAL ERROR: GPU "+str(args.g)+" is not available or does not exist: "+str(e))
+            sys.exit()
+        logging.info("Compute device is GPU "+str(args.g)+": "+gpuname)
+    if args.d=="mps":
+        if torch.backends.mps.is_available():
+            logging.info("Compute device is MPS")
+        else:
+            logging.error("CRITICAL ERROR: MPS is not available")
+            sys.exit()
+    if args.d=="cpu":
+        cpu_info = cpuinfo.get_cpu_info()
+        cpu_name = cpu_info['brand_raw']
+        logging.info("Compute device is CPU: "+cpu_name)
+        logging.warning("Compute device is CPU, prediction will be much slower")
 
     ## Set up nnunet
     nnunetdir=nnunetv2_setup()
 
     ## Check that weights exist; if not, go get them
-    taskname,taskno,fulltrainername=nnunetv2_weights(args.m,nnunetdir)
+    model_folder_name,use_mirroring=nnunetv2_weights(args.m,nnunetdir)
 
-    print(taskname)
-    print(taskno)
-    print(fulltrainername)
-
-    sys.exit()
-
-    ## Set up input variables for main prediction    
-    model_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",taskname,fulltrainername)
+    ## Set up input variables for main prediction
     samplename=os.path.basename(args.i)[:-7]
     segmentation_filename=os.path.join(args.o,samplename+"_"+args.m+".nii.gz")
     postprocessed_filename=segmentation_filename[:-7]+"_postprocessed.nii.gz"
@@ -132,8 +144,7 @@ def main():
 
     ## Get model and set up input variables for subsegmentation
     if args.subseg:
-        subsegtaskname,subsegtaskno,subsegfulltrainername=nnunetv2_weights("subseg",nnunetdir)
-        subsegmodel_folder_name=os.path.join(os.environ['RESULTS_FOLDER'],"nnUNet/3d_fullres",subsegtaskname,subsegfulltrainername)
+        subsegmodel_folder_name,sugbseguse_mirroring=nnunetv2_weights("subseg",nnunetdir)
         subseg_filename=segmentation_filename[:-7]+"_postprocessed_subseg.nii.gz"
         subseg_postprocessed_filename=subseg_filename[:-7]+"_postprocessed.nii.gz"
 
@@ -144,13 +155,8 @@ def main():
     else:
         ## Do prediction
         logging.info("Prediction starting")
-        predict_case(model=model_folder_name, list_of_lists=[[args.i]], output_filenames=[segmentation_filename], folds=folds,save_npz=False,
-                      num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
-                      mixed_precision=None, overwrite_existing=args.overwrite,
-                      all_in_gpu=False,
-                      step_size=0.5, checkpoint_name="model_final_checkpoint",
-                      segmentation_export_kwargs=None,
-                      disable_postprocessing=True)
+        predict_case(args=args,model_folder_name=model_folder_name,folds=folds,
+            output_filenames=[segmentation_filename],use_mirroring=use_mirroring)
         logging.info("Prediction complete, output is: "+str(segmentation_filename))
 
     ## Perform postprocessing if desired and segmentation completed
@@ -172,17 +178,18 @@ def main():
             logging.info("To overwrite existing output, append the --overwrite flag to your command")
         else:
             logging.info("Performing subsegmentation")
-            predict_case(model=subsegmodel_folder_name, list_of_lists=[[args.i]], output_filenames=[subseg_filename], folds=folds,save_npz=False,
-                      num_threads_preprocessing=2, num_threads_nifti_save=2, segs_from_prev_stage=None, do_tta=False,
-                      mixed_precision=None, overwrite_existing=args.overwrite,
-                      all_in_gpu=False,
-                      step_size=0.5, checkpoint_name="model_final_checkpoint",
-                      segmentation_export_kwargs=None,
-                      disable_postprocessing=True)
+            predict_case(args=args,model_folder_name=subsegmodel_folder_name,folds=folds,
+                output_filenames=[subseg_filename],use_mirroring=sugbseguse_mirroring)
             logging.info("Subsegmentation complete, output is: "+str(subseg_filename))
             logging.info("Performing subsegmentation postprocessing")
             subsegpostprocessing(subseg_filename,postprocessed_filename,subseg_postprocessed_filename)
             logging.info("Subsegmentation postprocessing complete, output is: "+str(subseg_postprocessed_filename))
+
+    ## Remove json file clutter
+    logging.info("Removing json files")
+    os.remove(os.path.join(args.o,"dataset.json"))
+    os.remove(os.path.join(args.o,"plans.json"))
+    os.remove(os.path.join(args.o,"predict_from_raw_data_args.json"))
 
     ## Wrap up
     exitlog(starttime)
