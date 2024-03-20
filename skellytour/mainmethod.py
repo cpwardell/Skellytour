@@ -65,7 +65,7 @@ def main():
     parser.add_argument("-o", type=str, help="path to output directory", required=False, default=".")
     parser.add_argument("-m", type=str, help="model to use; can be low (17 labels), medium (38 labels, default), high (60 labels)", required=False, default="medium", choices=["low","medium","high"])
     parser.add_argument("-c", type=int, help="number of CPU cores to use for preprocessing and postprocessing", required=False, default=6)
-    parser.add_argument("-d", type=str, help="Compute device to use", required=False, default="gpu", choices=["gpu","cpu","mps"])
+    parser.add_argument("-d", type=str, help="compute device to use", required=False, default="gpu", choices=["gpu","cpu","mps"])
     parser.add_argument("-g", type=int, help="GPU to use", required=False, default=0)
     parser.add_argument("--overwrite", help="overwrite previous results if they exist", required=False, default=False, action='store_true')
     parser.add_argument("--nopp", help="skip postprocessing on predicted segmentations", required=False, default=False, action='store_true')

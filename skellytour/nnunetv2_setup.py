@@ -76,7 +76,6 @@ def nnunetv2_weights(model,nnunetdir):
     if not all(checkpoints):
         ## Download file
         localzip=os.path.join(os.environ['nnUNet_results'],"temp.zip")
-        print(localzip)
         logging.info(model+" model not found locally, downloading zip file to "+localzip)
         r = requests.get(modelurl)
         with open(localzip, "wb") as f:

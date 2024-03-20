@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skellytour"
-version = "1.0.0"
+version = "2.0.0"
 requires-python = ">=3.9"
 description = "Skellytour: Bone Segmentation from Whole-Body CT scans"
 license = {file = "LICENSE"}
@@ -27,7 +27,8 @@ keywords = [
     'skeleton'
 ]
 dependencies = [
-    "nnunet @ https://github.com/MIC-DKFZ/nnUNet/archive/refs/tags/v1.7.1.zip#sha1=8aeba3786509275bc8910397be4725023052affe",
+    "nnunetv2",
+    "py-cpuinfo",
     "requests",
     "numpy",
     "SimpleITK",

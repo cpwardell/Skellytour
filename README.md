@@ -5,12 +5,18 @@
 # Skellytour: Automated Skeleton Segmentation from Whole-Body CT Images
 ## Key Features
 - **Segments bones from any CT scan**
-- **Based on the state-of-the-art nnU-Net package**
-- **3 models with increasing numbers of labels (17, 38 or 60 labels), including a label for high-radiodensity artifacts**
+- **Based on the state-of-the-art [nnUNetv2](https://github.com/MIC-DKFZ/nnUNet "nnUNetv2 on GitHub") package**
+- **3 models with increasing numbers of labels (17, 38 or 60 labels), including a label for high-radiodensity objects (e.g. surgically implanted hardware)**
 - **Subsegmentation model to segment bones into cortical and trabecular regions**
-- **Trained using a high quality, manually segmented dataset of elderly patients with low bone density and osteolytic lesions**
+- **Trained using a high quality, manually segmented dataset of elderly multiple myeloma patients with low bone density and osteolytic lesions**
 - **High accuracy; average Dice for medium model is 0.935**
-- **GPU with 8GB of RAM is recommended, but will work with CPU only**
+- **GPU, CPU and MPS compute devices supported**
+- **GPU with at least 8GB of RAM is recommended, but will work with CPU only**
+- **Developed on Ubuntu using WSL, but should work on Windows, Linux and macOS**
+
+## News
+- **April 2024: updated models and code to nnUNetv2**
+- **October 2023: initial release using nnUNetv1**
 
 ## Citing Skellytour
 For more information and if you use Skellytour in your work, please cite our upcoming paper:
@@ -29,14 +35,14 @@ For more information and if you use Skellytour in your work, please cite our upc
 Segmenting bones from CT scans is required for a range of both clinical and research applications; e.g. diagnosing fractures, surgical planning, producing 3D models of bones, quantitative image analysis. However, segmentation is a time-consuming and laborious process. We present `Skellytour`, an easy-to-use tool for bone segmentation from CT scans. `Skellytour` is based on the state-of-the-art [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) and was trained using a high quality, manually segmented dataset of elderly patients with low bone density and osteolytic lesions. Segmentations were verified by a board-certified radiologist and a board-certified nuclear medicine physician. Tested against an internal and two external datasets, the medium model achieved high metrics (Dice scores of 0.935, 0.936, 0.953 and Normalized Surface Distance of 0.993, 0.999, 0.990). It includes 3 models with increasing numbers of labels (17, 38 or 60 labels), with a separate label for high-radiodensity artifacts such as surgically implanted hardware. An optional model subsegments bones into cortical and trabecular regions.
 
 ## Installation
-It is recommended but not required that you install Skellytour in a conda environment using Python v3.9:
+It is recommended but not required that you install Skellytour in a Conda environment using Python v3.9. You can find Conda installation instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html "Conda installation instructions").
 ```
-## Create new conda environment and activate it
+## Create new Conda environment and activate it
 conda create -y -n skellytour python=3.9
 conda activate skellytour
 ```
 
-Download and install Skellytour via GitHub using pip.  All dependencies will automatically be installed:
+Download and install Skellytour via GitHub using pip. All dependencies will automatically be installed:
 
 ```
 git clone https://github.com/cpwardell/Skellytour.git
@@ -44,34 +50,42 @@ cd Skellytour/
 python -m pip install .
 ```
 
-You can test if Skellytour has installed correctly by running `skellytour` on the command line.  It will print the help message and notify you if a GPU is detected.
+You can test if Skellytour has installed correctly by running `skellytour` on the command line. It will print the help message and notify you if a GPU is detected and how many are available.
 
 ```
 $ skellytour
 error: the following arguments are required: -i
-usage: skellytour [-h] -i I [-o O] [-m M] [--overwrite] [--nopp] [--subseg] [--fast]
+usage: skellytour [-h] -i I [-o O] [-m {low,medium,high}] [-c C] [-d {gpu,cpu,mps}] [-g G] [--overwrite] [--nopp] [--subseg] [--fast]
 
 Skellytour: Bone Segmentation from CT scans
 
-options:
-  -h, --help   show this help message and exit
-  -i I         path to input NIfTI file (default: None)
-  -o O         path to output directory (default: .)
-  -m M         model to use; can be low (17 labels), medium (38 labels, default), high (60 labels) (default: medium)
-  --overwrite  overwrite previous results if they exist (default: False)
-  --nopp       skip postprocessing on predicted segmentations (default: False)
-  --subseg     perform subsegmentation, assigning trabecular and cortical labels (default: False)
-  --fast       perform segmentation tasks with a single fold, not the full ensemble model. Not recommended (default: False)
+optional arguments:
+  -h, --help            show this help message and exit
+  -i I                  path to input NIfTI file (default: None)
+  -o O                  path to output directory (default: .)
+  -m {low,medium,high}  model to use; can be low (17 labels), medium (38 labels, default), high (60 labels) (default: medium)
+  -c C                  number of CPU cores to use for preprocessing and postprocessing (default: 6)
+  -d {gpu,cpu,mps}      compute device to use (default: gpu)
+  -g G                  GPU to use (default: 0)
+  --overwrite           overwrite previous results if they exist (default: False)
+  --nopp                skip postprocessing on predicted segmentations (default: False)
+  --subseg              perform subsegmentation, to predict trabecular and cortical labels (default: False)
+  --fast                perform segmentation tasks with a single fold, not the full ensemble model. Not recommended (default: False)
 
-GPU detected
+1 GPU detected
 ```
 
 ## Usage
-Skellytour requires only a gzipped NIfTI file of a CT scan as input. The default usage is:
+Skellytour requires only a gzipped NIfTI file of a CT scan as input. Note that you should provide a path to the actual file, *not* the directory containing it. The default usage is:
 ```
 skellytour -i /path/to/input/nifti.nii.gz
 ```
-This will run the "medium" model with 38 labels and write output to the current working directory. When a model is run for the first time, Skellytour will download the pretrained model from GitHub and store it in a hidden directory in the current user's home directory e.g. `/home/user/.skellytour`. Each model requires approximately 1.2 GB of storage space.
+This will run the `medium` model with 38 labels and write output to the current working directory. When a model is run for the first time, Skellytour will download the pretrained model from GitHub and store it in a hidden directory in the current user's home directory e.g. `/home/user/.skellytour`. Each model requires approximately 1.2 GB of storage space.
+
+Below is a more complex command that would produce a `high` (60 label) bone segmentation and additional subsegmentation with trabecular and cortical labels, using the second GPU:
+```
+skellytour -i /path/to/input/nifti.nii.gz -m high -g 1 --subseg
+```
 
 The following arguments are available:
 
@@ -81,6 +95,9 @@ Argument | Description
 **`-i`** | path to input NIfTI file (default: None)
 **`-o`** | path to output directory (default: .)
 **`-m`** | model to use; can be low (17 labels), medium (38 labels, default), high (60 labels) (default: medium)
+**`-c`** | number of CPU cores to use for preprocessing and postprocessing (default: 6)
+**`-d`** | compute device to use; either gpu, cpu or mps (default: gpu)
+**`-g`** | GPU to use if you have multiple; 0 is the first, 1 the second, etc (default: 0)
 **`--overwrite`** | overwrite previous results if they exist (default: False)
 **`--nopp`** | skip postprocessing on predicted segmentations (default: False)
 **`--subseg`** | perform subsegmentation, assigning trabecular and cortical labels (default: False)
@@ -95,7 +112,7 @@ There are 3 main models and a subsegmentation model. The main models (`low`,`med
 ## Description of Output
 While running, Skellytour will print messages to the screen updating users on the process. Output files are gzipped NIfTI files containing multilabel segmentations. As an example, the command below will run the medium and subsegmentation models and write output to the `outputdir` directory:
 ```
-skellytour -i example.nii.gz -o outputdir -m medium --subseg
+skellytour -i example.nii.gz -o outputdir --subseg
 ```
 
 Output file | Description
@@ -103,12 +120,12 @@ Output file | Description
 **log.txt** | Text file containing all details of the process
 **example_medium.nii.gz** | Raw segmentation produced by the medium model
 **example_medium_postprocessed.nii.gz** | Postprocessed medium model segmentation
-**example_medium_postprocessed_subseg.nii.gz** |  Raw segmentation produced by the subsegmentation model
+**example_medium_postprocessed_subseg.nii.gz** | Raw segmentation produced by the subsegmentation model
 **example_medium_postprocessed_subseg_postprocessed.nii.gz** | Postprocessed subsegmentation model segmentation
 
 
 ## Getting Help
-If you find an issue not covered in this document, please open a new issue on GitHub.
+If you find an issue not covered in this document, or want to request a new feature or model, please open a new issue on GitHub.
 
 ## Label List and Description
 A complete list of all numeric labels in each model is below.
