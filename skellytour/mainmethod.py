@@ -38,6 +38,13 @@ def exitlog(starttime):
     logging.info("Total time taken: "+str(endtime-starttime))
     sys.exit()
 
+def filedelete(pathtofile):
+    if os.path.exists(pathtofile):
+        try:
+            os.remove(pathtofile)
+        except:
+            logging.error("Could not delete file: "+str(pathtofile))
+
 def main():
 
     ## Check if GPU is available and print count
@@ -80,8 +87,14 @@ def main():
     try:
         os.makedirs(args.o,exist_ok=True)
     except Exception as e:
-        logging.error("CRITICAL ERROR: results directory could not be created: "+str(e))
-        logging.error("If using Docker, the current directory must be writeable by any user")
+        print("CRITICAL ERROR: results directory could not be created: "+str(e))
+        print("If using Docker, the current directory must be writeable by any user")
+        sys.exit()
+
+    ## Avoid overwriting if output exists; check for a logfile
+    if not args.overwrite and os.path.exists(os.path.join(args.o,'log.txt')):
+        print("Log file found in output directory: "+os.path.join(args.o,'log.txt'))
+        print("To overwrite existing output, append the --overwrite flag to your command")
         sys.exit()
 
     ## Set up logging
@@ -186,10 +199,10 @@ def main():
             logging.info("Subsegmentation postprocessing complete, output is: "+str(subseg_postprocessed_filename))
 
     ## Remove json file clutter
-    logging.info("Removing json files")
-    os.remove(os.path.join(args.o,"dataset.json"))
-    os.remove(os.path.join(args.o,"plans.json"))
-    os.remove(os.path.join(args.o,"predict_from_raw_data_args.json"))
+    logging.info("Removing unnecessary json files")
+    filedelete(os.path.join(args.o,"dataset.json"))
+    filedelete(os.path.join(args.o,"plans.json"))
+    filedelete(os.path.join(args.o,"predict_from_raw_data_args.json"))
 
     ## Wrap up
     exitlog(starttime)
