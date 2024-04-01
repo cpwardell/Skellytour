@@ -110,7 +110,7 @@ There are 3 main models and a subsegmentation model. The main models (`low`,`med
 </p>
 
 ## Description of Output
-While running, Skellytour will print messages to the screen updating users on the process. Output files are gzipped NIfTI files containing multilabel segmentations. As an example, the command below will run the medium and subsegmentation models and write output to the `outputdir` directory:
+While running, Skellytour will print messages to the screen updating users on progress. Output files are gzipped NIfTI files containing multilabel segmentations. As an example, the command below will run the medium and subsegmentation models and write output to the `outputdir` directory:
 ```
 skellytour -i example.nii.gz -o outputdir --subseg
 ```
@@ -167,30 +167,30 @@ Labelling Scheme | Numeric Label | Description
 **High** | 33 | RIGHT_RIB_10
 **High** | 34 | RIGHT_RIB_11
 **High** | 35 | RIGHT_RIB_12
-**High** | 36 | VERT_1
-**High** | 37 | VERT_2
-**High** | 38 | VERT_3
-**High** | 39 | VERT_4
-**High** | 40 | VERT_5
-**High** | 41 | VERT_6
-**High** | 42 | VERT_7
-**High** | 43 | VERT_8
-**High** | 44 | VERT_9
-**High** | 45 | VERT_10
-**High** | 46 | VERT_11
-**High** | 47 | VERT_12
-**High** | 48 | VERT_13
-**High** | 49 | VERT_14
-**High** | 50 | VERT_15
-**High** | 51 | VERT_16
-**High** | 52 | VERT_17
-**High** | 53 | VERT_18
-**High** | 54 | VERT_19
-**High** | 55 | VERT_20
-**High** | 56 | VERT_21
-**High** | 57 | VERT_22
-**High** | 58 | VERT_23
-**High** | 59 | VERT_24
+**High** | 36 | C1
+**High** | 37 | C2
+**High** | 38 | C3
+**High** | 39 | C4
+**High** | 40 | C5
+**High** | 41 | C6
+**High** | 42 | C7
+**High** | 43 | T1
+**High** | 44 | T2
+**High** | 45 | T3
+**High** | 46 | T4
+**High** | 47 | T5
+**High** | 48 | T6
+**High** | 49 | T7
+**High** | 50 | T8
+**High** | 51 | T9
+**High** | 52 | T10
+**High** | 53 | T11
+**High** | 54 | T12
+**High** | 55 | L1
+**High** | 56 | L2
+**High** | 57 | L3
+**High** | 58 | L4
+**High** | 59 | L5
 **High** | 60 | ARTIFACTS
 **Medium** | 1 | SKULL
 **Medium** | 2 | PELVIS
@@ -205,30 +205,30 @@ Labelling Scheme | Numeric Label | Description
 **Medium** | 11 | RIGHT_CLAVICLE
 **Medium** | 12 | LEFT_RIBS
 **Medium** | 13 | RIGHT_RIBS
-**Medium** | 14 | VERT_1
-**Medium** | 15 | VERT_2
-**Medium** | 16 | VERT_3
-**Medium** | 17 | VERT_4
-**Medium** | 18 | VERT_5
-**Medium** | 19 | VERT_6
-**Medium** | 20 | VERT_7
-**Medium** | 21 | VERT_8
-**Medium** | 22 | VERT_9
-**Medium** | 23 | VERT_10
-**Medium** | 24 | VERT_11
-**Medium** | 25 | VERT_12
-**Medium** | 26 | VERT_13
-**Medium** | 27 | VERT_14
-**Medium** | 28 | VERT_15
-**Medium** | 29 | VERT_16
-**Medium** | 30 | VERT_17
-**Medium** | 31 | VERT_18
-**Medium** | 32 | VERT_19
-**Medium** | 33 | VERT_20
-**Medium** | 34 | VERT_21
-**Medium** | 35 | VERT_22
-**Medium** | 36 | VERT_23
-**Medium** | 37 | VERT_24
+**Medium** | 14 | C1
+**Medium** | 15 | C2
+**Medium** | 16 | C3
+**Medium** | 17 | C4
+**Medium** | 18 | C5
+**Medium** | 19 | C6
+**Medium** | 20 | C7
+**Medium** | 21 | T1
+**Medium** | 22 | T2
+**Medium** | 23 | T3
+**Medium** | 24 | T4
+**Medium** | 25 | T5
+**Medium** | 26 | T6
+**Medium** | 27 | T7
+**Medium** | 28 | T8
+**Medium** | 29 | T9
+**Medium** | 30 | T10
+**Medium** | 31 | T11
+**Medium** | 32 | T12
+**Medium** | 33 | L1
+**Medium** | 34 | L2
+**Medium** | 35 | L3
+**Medium** | 36 | L4
+**Medium** | 37 | L5
 **Medium** | 38 | ARTIFACTS
 **Low** | 1 | SKULL
 **Low** | 2 | PELVIS
@@ -243,9 +243,9 @@ Labelling Scheme | Numeric Label | Description
 **Low** | 11 | RIGHT_CLAVICLE
 **Low** | 12 | LEFT_RIBS
 **Low** | 13 | RIGHT_RIBS
-**Low** | 14 | CERVICAL_VERTS
-**Low** | 15 | THORACIC_VERTS
-**Low** | 16 | LUMBAR_VERTS
+**Low** | 14 | CERVICAL_VERTEBRAE
+**Low** | 15 | THORACIC_VERTEBRAE
+**Low** | 16 | LUMBAR_VERTEBRAE
 **Low** | 17 | ARTIFACTS
 **Subsegmentation** | 1 | TRABECULAR BONE
 **Subsegmentation** | 2 | CORTICAL BONE

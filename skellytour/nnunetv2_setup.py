@@ -42,22 +42,20 @@ def nnunetv2_setup(nnunetdir="~"):
 def nnunetv2_weights(model,nnunetdir):
     ## Set variables for each model, including where to find files (locally or online)
     if model=="low":
-        taskname="Task812"
-        taskno="812"
-        fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
+        model_folder_name=os.path.join(os.environ['nnUNet_results'],"Dataset812_skellylow/nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres")
+        use_mirroring=False
         modelfolds=range(5)
-        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.1/Task812.zip"
+        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.2/Dataset812.zip"
     if model=="medium":
         model_folder_name=os.path.join(os.environ['nnUNet_results'],"Dataset815_skelly75/nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres")
         use_mirroring=False
         modelfolds=range(5)
         modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.2/Dataset815.zip"
     if model=="high":
-        taskname="Task810"
-        taskno="810"
-        fulltrainername="nnUNetTrainerV2_noMirroring__nnUNetPlansv2.1"
+        model_folder_name=os.path.join(os.environ['nnUNet_results'],"Dataset810_skellyhigh/nnUNetTrainerNoMirroring__nnUNetPlans__3d_fullres")
+        use_mirroring=False
         modelfolds=range(5)
-        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.1/Task810.zip"
+        modelurl="https://github.com/cpwardell/Skellytour/releases/download/v0.0.2/Dataset810.zip"
     if model=="subseg":
         model_folder_name=os.path.join(os.environ['nnUNet_results'],"Dataset850_skellsubseg/nnUNetTrainer__nnUNetPlans__3d_fullres")
         use_mirroring=True

@@ -107,6 +107,7 @@ def main():
 
     ## Write the command line parameters to the log file
     starttime=datetime.datetime.now()
+    logging.info("If you use this software, please cite our upcoming paper:\nMann D.C., Rutherford M., Farmer P., Eichhorn J., Palot Manzil F.F., Wardell C.P. (2024).\nSkellytour: Automated Skeleton Segmentation from Whole-Body CT Images")
     logging.info("Skellytour was invoked using this command: "+printargs)
     logging.info("Start time is: "+str(starttime.strftime("%Y-%m-%d %H:%M:%S")))
     logging.info("Input file is: "+str(args.i))
