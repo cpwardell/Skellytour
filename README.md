@@ -15,6 +15,7 @@
 - **Developed on Ubuntu using WSL, but should work on Windows, Linux and macOS**
 
 ## News
+- **July 2024: added fix for handling data in non-LPS orientation**
 - **April 2024: updated models and code to nnUNetv2**
 - **October 2023: initial release using nnUNetv1**
 

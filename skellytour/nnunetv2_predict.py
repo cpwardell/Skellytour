@@ -70,7 +70,7 @@ def predict_case(args,model_folder_name,folds,output_filenames,use_mirroring):
             use_folds=folds,
             checkpoint_name='checkpoint_final.pth',
         )
-        predictor.predict_from_files(list_of_lists_or_source_folder=[[args.i]],
+        predictor.predict_from_files(list_of_lists_or_source_folder=[[os.path.join(args.o,"temp.nii.gz")]],
                                  output_folder_or_list_of_truncated_output_files=output_filenames,
                                  save_probabilities=False, overwrite=args.overwrite,
                                  num_processes_preprocessing=args.c,

@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "skellytour"
-version = "2.0.0"
+version = "2.1.0"
 requires-python = ">=3.9"
 description = "Skellytour: Bone Segmentation from Whole-Body CT scans"
 license = {file = "LICENSE"}

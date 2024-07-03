@@ -26,6 +26,8 @@ import logging
 import datetime
 import torch
 import cpuinfo
+import SimpleITK as sitk
+import glob
 
 from skellytour.nnunetv2_setup import nnunetv2_setup, nnunetv2_weights
 from skellytour.nnunetv2_predict import predict_case 
@@ -167,6 +169,15 @@ def main():
         logging.info("Segmentation output already exists: "+str(segmentation_filename))
         logging.info("To overwrite existing output, append the --overwrite flag to your command")
     else:
+        ## Copy input file to output directory and change orientation to standard
+        logging.info("Copying input data to temporary file in output directory")
+        reader=sitk.ImageFileReader()
+        reader.SetFileName(args.i)
+        image = reader.Execute()
+        inputorientation = sitk.DICOMOrientImageFilter_GetOrientationFromDirectionCosines(image.GetDirection())
+        image = sitk.DICOMOrient(image, desiredCoordinateOrientation="LPS")
+        sitk.WriteImage(image,os.path.join(args.o,"temp.nii.gz"))
+        logging.info("Input file orientation: "+str(inputorientation))
         ## Do prediction
         logging.info("Prediction starting")
         predict_case(args=args,model_folder_name=model_folder_name,folds=folds,
@@ -199,15 +210,26 @@ def main():
             subsegpostprocessing(subseg_filename,postprocessed_filename,subseg_postprocessed_filename)
             logging.info("Subsegmentation postprocessing complete, output is: "+str(subseg_postprocessed_filename))
 
-    ## Remove json file clutter
-    logging.info("Removing unnecessary json files")
+    ## Remove json file clutter and temporary input file
+    logging.info("Removing unnecessary json files and temporary input file")
+    filedelete(os.path.join(args.o,"temp.nii.gz"))
     filedelete(os.path.join(args.o,"dataset.json"))
     filedelete(os.path.join(args.o,"plans.json"))
     filedelete(os.path.join(args.o,"predict_from_raw_data_args.json"))
 
+    ## Reorientate output if required
+    if(inputorientation != "LPS"):
+        logging.info("Reorienting output to input orientation")
+        gzfiles = glob.glob(os.path.join(args.o, "*nii.gz"))
+        for gzfile in gzfiles:
+            reader=sitk.ImageFileReader()
+            reader.SetFileName(gzfile)
+            image = reader.Execute()
+            image = sitk.DICOMOrient(image, desiredCoordinateOrientation=inputorientation)
+            sitk.WriteImage(image,gzfile)
+
     ## Wrap up
     exitlog(starttime)
-
 
 ## Execute main method
 if __name__ == '__main__':
