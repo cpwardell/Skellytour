@@ -12,9 +12,10 @@
 - **High accuracy; average Dice for medium model is 0.935**
 - **GPU, CPU and MPS compute devices supported**
 - **GPU with at least 8GB of RAM is recommended, but will work with CPU only**
-- **Developed on Ubuntu using WSL, but should work on Windows, Linux and macOS**
+- **Developed and tested on Ubuntu and on Windows using Ubuntu under WSL, but should work on Windows, Linux and macOS**
 
 ## News
+- **September 2024: added RAM and GPU RAM estimates to log file**
 - **July 2024: added fix for handling data in non-LPS orientation**
 - **April 2024: updated models and code to nnUNetv2**
 - **October 2023: initial release using nnUNetv1**
@@ -126,7 +127,7 @@ Output file | Description
 
 
 ## Getting Help
-If you find an issue not covered in this document, or want to request a new feature or model, please open a new issue on GitHub.
+If you find an issue not covered in this document, or want to request a new feature or model, please open a new issue on GitHub. Note that these models can be quite hungry for RAM and GPU RAM; if you are having trouble, please contact us and we may be able to suggest ways to help or provide a custom model optimized for your use case.
 
 ## Label List and Description
 A complete list of all numeric labels in each model is below.

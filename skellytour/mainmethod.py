@@ -28,6 +28,9 @@ import torch
 import cpuinfo
 import SimpleITK as sitk
 import glob
+import psutil
+import GPUtil
+import math
 
 from skellytour.nnunetv2_setup import nnunetv2_setup, nnunetv2_weights
 from skellytour.nnunetv2_predict import predict_case 
@@ -139,6 +142,34 @@ def main():
         cpu_name = cpu_info['brand_raw']
         logging.info("Compute device is CPU: "+cpu_name)
         logging.warning("Compute device is CPU, prediction will be much slower")
+
+
+    ## Report system information and available resources
+    hostname=os.uname()[1]
+    logging.info("Hostname: "+str(hostname))
+    systemram=round(psutil.virtual_memory().available/(1024**3))
+    logging.info("System RAM: "+str(systemram)+" GB")
+    gpuram=round(GPUtil.getGPUs()[0].memoryTotal/(1024))
+    logging.info("GPU RAM: "+str(gpuram)+" GB")
+
+    ## Report information on the input file and estimate required memory
+    image = sitk.ReadImage(args.i)
+    dims=image.GetSize()
+    spacing=image.GetSpacing()
+    volume=math.prod(dims+spacing)
+    lowram=round(volume*1.2e-7)
+    lowgpu=round(volume*5.5e-8)
+    medram=round(volume*2.3e-7)
+    medgpu=round(volume*1.1e-7)
+    highram=round(volume*3.5e-7)
+    highgpu=round(volume*1.7e-7)
+    logging.info("Input voxel dimensions: "+str(dims))
+    logging.info("Input spacing in mm: "+str(spacing))
+    logging.info("Input volume in liters: "+str(round(volume*1e-6,1)))
+    logging.info("Memory estimates are based on input volume and should not be relied upon")
+    logging.info("Estimated memory required for \"low\" model: "+str(lowram)+" GB system RAM, "+str(lowgpu)+" GB GPU RAM")
+    logging.info("Estimated memory required for \"medium\" model: "+str(medram)+" GB system RAM, "+str(medgpu)+" GB GPU RAM")
+    logging.info("Estimated memory required for \"high\" model: "+str(highram)+" GB system RAM, "+str(highgpu)+" GB GPU RAM")
 
     ## Set up nnunet
     nnunetdir=nnunetv2_setup()

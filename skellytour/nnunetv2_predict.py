@@ -25,6 +25,7 @@ import sys
 ## DummyFile and nostdout() allow nnunet messages to be silenced
 class DummyFile(object):
     def write(self, x): pass
+    def flush(self): pass
 
 @contextlib.contextmanager
 def nostdout():

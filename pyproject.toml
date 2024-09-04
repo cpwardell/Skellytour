@@ -33,7 +33,9 @@ dependencies = [
     "numpy",
     "SimpleITK",
     "scikit-image>=0.19.3",
-    "torch"
+    "torch",
+    "psutil",
+    "GPUtil"
 ]
 
 [tool.setuptools]
