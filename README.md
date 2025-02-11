@@ -37,10 +37,10 @@ For more information and if you use Skellytour in your work, please cite our upc
 Segmenting bones from CT scans is required for a range of both clinical and research applications; e.g. diagnosing fractures, surgical planning, producing 3D models of bones, quantitative image analysis. However, segmentation is a time-consuming and laborious process. We present `Skellytour`, an easy-to-use tool for bone segmentation from CT scans. `Skellytour` is based on the state-of-the-art [nnU-Net](https://github.com/MIC-DKFZ/nnUNet) and was trained using a high quality, manually segmented dataset of elderly patients with low bone density and osteolytic lesions. Segmentations were verified by a board-certified radiologist and a board-certified nuclear medicine physician. Tested against an internal and two external datasets, the medium model achieved high metrics (Dice scores of 0.935, 0.936, 0.953 and Normalized Surface Distance of 0.993, 0.999, 0.990). It includes 3 models with increasing numbers of labels (17, 38 or 60 labels), with a separate label for high-radiodensity artifacts such as surgically implanted hardware. An optional model subsegments bones into cortical and trabecular regions.
 
 ## Installation
-It is recommended but not required that you install Skellytour in a Conda environment using Python v3.9. You can find Conda installation instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html "Conda installation instructions").
+It is recommended but not required that you install Skellytour in a Conda environment using Python v3.10. You can find Conda installation instructions [here](https://docs.conda.io/projects/conda/en/latest/user-guide/install/index.html "Conda installation instructions").
 ```
 ## Create new Conda environment and activate it
-conda create -y -n skellytour python=3.9
+conda create -y -n skellytour python=3.10
 conda activate skellytour
 ```
 
